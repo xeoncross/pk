@@ -6,7 +6,7 @@
  * $ php ../../compact.php compressed/utf8.php utf8.php
  *
  **/
-require(__DIR__ . '/src/lib/compactor.php');
+require(__DIR__ . '/phpcompactor/src/lib/compactor.php');
 
 if ($argc < 3) {
   print "Strip unnecessary data from PHP source files.\n\n\tUsage: php phpcompactor.php DESTINATION.php SOURCE.php\n";
