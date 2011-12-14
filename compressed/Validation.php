@@ -1,0 +1,2 @@
+<?php
+class Validation{$s=array();function __set($k,$c){$this->s[$k]=$c;}function __get($k){return$this->s[$k]($this);}function validate($d){$a;foreach($this->s as$k=>$f){if($e=$f(isset($d[$k])?$d[$k]:NULL,$k)){$a[$k]=$e;}}return$a;}}

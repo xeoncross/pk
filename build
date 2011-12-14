@@ -1,0 +1,57 @@
+<?php
+/**
+ * Compact the PK classes to find the true character count
+ **/
+require(__DIR__ . '/ParsePHP.php');
+
+$dir = __DIR__ . '/compressed/';
+
+$iterator = new DirectoryIterator(__DIR__);
+
+$code = '';
+foreach ($iterator as $file)
+{
+	// We only want files
+	if ( ! $file->isFile()) continue;
+
+	// We only want PHP files
+	if ($file->getExtension() != 'php') continue;
+
+	$text = file_get_contents($file->getPathname());
+
+	$start_size = mb_strlen($text);
+
+	$parsePHP = new ParsePHP($text);
+	$parsePHP->minimize();
+	$text = $parsePHP;
+
+	// Add to the full file
+	$code .= substr($text, 5);
+
+	$end_length = mb_strlen($text);
+
+	print "Compressed " . $file->getFilename() . " from "
+		. colorize($start_size, 'red') . ' to '
+		. colorize($end_length, 'green') . " characters\n";
+
+	file_put_contents($dir . $file->getFilename(), $text);
+}
+
+file_put_contents($dir . 'pk.php', '<?php' . $code);
+
+
+/**
+ * Color output text for the CLI
+ *
+ * @param string $text to color
+ * @param string $color of text
+ * @param string $background color
+ */
+function colorize($text, $color, $bold = FALSE)
+{
+	// Standard CLI colors
+	$colors = array_flip(array(30 => 'gray', 'red', 'green', 'yellow', 'blue', 'purple', 'cyan', 'white', 'black'));
+
+	// Escape string with color information
+	return"\033[" . ($bold ? '1' : '0') . ';' . $colors[$color] . "m$text\033[0m";
+}

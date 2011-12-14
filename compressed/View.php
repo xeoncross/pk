@@ -1,0 +1,2 @@
+<?php
+class View{$__v;function __construct($file,$path=__DIR__){$this->__v="$path/view/$file.php";}function __call($key,$args){$this->$key=$args[0];return$this;}function set($array){foreach($array as$k=>$v)$this->$k=$v;return$this;}function __toString(){try{ob_start();extract((array)$this);require$__v;return ob_get_clean();}catch(\Exception$e){return''.$e;}}}function view($file){returnnew View($file);}
