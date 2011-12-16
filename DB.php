@@ -4,127 +4,135 @@
  */
 class DB
 {
-	public$i='`',$p;
-	static$q;
+	public $i='`', $c;
+	static $q;
 
 	/**
 	 * Set the database connection on creation
 	 *
 	 * @param object $c PDO connection object
 	 */
-	function DB($c)
+	function DB($connection)
 	{
-		$this->c = $c;
+		$this->c = $connection;
 	}
 
 	/**
 	 * Fetch a column offset from the result set (COUNT() queries)
 	 *
-	 * @param string $q query string
-	 * @param array $p query parameters
-	 * @param integer $k key index of column offset
+	 * @param string $query query string
+	 * @param array $params query parameters
+	 * @param integer $key index of column offset
 	 * @return array|null
 	 */
-	function column($q,$p=NULL,$k=0)
+	function column($query, $params = NULL, $key = 0)
 	{
-		if($s=$this->query($q,$p))
-			return$s->fetchColumn($k);
+		if($statement = $this->query($query, $params))
+			return $statement->fetchColumn($key);
 	}
 
 	/**
 	 * Fetch a single query result row
 	 *
-	 * @param string $q query string
-	 * @param array $p query parameters
+	 * @param string $query query string
+	 * @param array $params query parameters
 	 * @return object|null
 	 */
-	function row($q,$p=NULL)
+	function row($query, $params = NULL)
 	{
-		if($s=$this->query($q,$p))
-			return$s->fetch();
+		if($statement = $this->query($query, $params))
+			return $statement->fetch();
 	}
 
 	/**
 	 * Fetch all query result rows
 	 *
-	 * @param string $q query string
-	 * @param array $p query parameters
+	 * @param string $query query string
+	 * @param array $params query parameters
 	 * @return array|null
 	 */
-	function fetch($q,$p=NULL)
+	function fetch($query, $params = NULL)
 	{
-		if($s=$this->query($q,$p))
-			return$s->fetchAll();
+		if($statement = $this->query($query, $params))
+			return $statement->fetchAll();
 	}
 
 	/**
 	 * Prepare and send a query returning the PDOStatement
 	 *
-	 * @param string $q query string
-	 * @param array $p query parameters
+	 * @param string $query query string
+	 * @param array $params query parameters
 	 * @return object|null
 	 */
-	function query($q,$p=NULL)
+	function query($query, $params = NULL)
 	{
-		$s=$this->c->prepare(self::$q[]=strtr($q,'`',$this->i));
-		$s->execute($p);
-		return$s;
+		$statement = $this->c->prepare(self::$q[] = strtr($query, '`', $this->i));
+		$statement->execute($params);
+		return $statement;
 	}
 
 	/**
 	 * Insert a row into the database
 	 *
-	 * @param string $t table name
-	 * @param array $d row data
+	 * @param string $table name
+	 * @param array $data row data
 	 * @return integer|null
 	 */
-	function insert($t,$d)
+	function insert($table, $data)
 	{
-		$x=$this;
-		$q="INSERT INTO `$t`(`".implode('`,`',array_keys($d)).'`)VALUES('.rtrim(str_repeat('?,',count($d=array_values($d))),',').')';
-		return$x->p?$x->column($q.'RETURNING `id`',$d):($x->query($q,$d)?$x->c->lastInsertId():NULL);
+		$x = $this;
+		$query = "INSERT INTO `$table`(`" . implode('`,`', array_keys($data)) . '`)VALUES('
+				. rtrim(str_repeat('?,', count($data = array_values($data))), ',') . ')';
+
+		return $x->p ? $x->column($query . 'RETURNING `id`', $data) : ($x->query($query, $data) ? $x->c->lastInsertId() : NULL);
 	}
 
 	/**
 	 * Update a database row
 	 *
-	 * @param string $t table name
-	 * @param array $d row data
-	 * @param array $w where conditions
+	 * @param string $table name
+	 * @param array $data row data
+	 * @param array $where where conditions
 	 * @return integer|null
 	 */
-	function update($t,$d,$w)
+	function update($table, $data, $where)
 	{
-		$q="UPDATE `$t` SET `".implode('`=?,`',array_keys($d)).'`=? WHERE '.(is_array($w)?$this->where($w,$d):$w);
-		if($s=$this->query($q,array_values($d)))
-			return$s->rowCount();
+		$query = "UPDATE `$table` SET `" . implode('`=?,`', array_keys($data)) . '`=? WHERE '
+				. (is_array($where) ? $this->where($where, $data) : $where);
+
+		if($statement = $this->query($query, array_values($data)))
+			return $statement->rowCount();
 	}
 
 	/**
 	 * Issue a delete query
 	 *
-	 * @param string $t table name
-	 * @param array $w where conditions
+	 * @param string $table name
+	 * @param array $where where conditions
 	 * @return integer|null
 	 */
-	function delete($t,$w)
+	function delete($table, $where)
 	{
-		$p;
-		if($s=$this->query("DELETE FROM `$t` WHERE ".(is_array($w)?$this->where($w,$p):$w),$p))
-			return$s->rowCount();
+		$params;
+		if($statement = $this->query("DELETE FROM `$table` WHERE ".(is_array($where) ? $this->where($where, $params) : $where), $params))
+			return $statement->rowCount();
 	}
 
 	/**
 	 * Parse an array of WHERE conditions
 	 *
-	 * @param array $w where conditions
-	 * @param array $d query parameters
+	 * @param array $where where conditions
+	 * @param array $data query parameters
 	 * @return string
 	 */
-	function where($w,&$p)
+	function where($where, &$params)
 	{
-		$s;
-		foreach($w as$c=>$v){$s[]="`$c`=?";$p[]=$v;}
-		return join(' AND ',$s);
+		$string;
+		foreach($where as $column => $value)
+		{
+			$string[] = "`$column`=?";
+			$params[] = $value;
+		}
+		return join(' AND ', $string);
 	}
 }

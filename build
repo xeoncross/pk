@@ -19,6 +19,8 @@ foreach ($iterator as $file)
 
 	$class = $file->getBasename('.php');
 
+	//if($class != 'DB') continue;
+
 	require_once(__DIR__ . '/' . $class . '.php');
 
 	$text = file_get_contents($file->getPathname());

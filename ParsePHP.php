@@ -26,8 +26,39 @@ class ParsePHP
 		// First we need to reflect the class
 		$reflectedClass = new ReflectionClass($class);
 
+		$code = '';
+
+		if($properties = $reflectedClass->getDefaultProperties())
+		{
+			if($static = $reflectedClass->getStaticProperties())
+			{
+				$static = array_keys($static);
+			}
+
+			if($static) $code .= "\nstatic$" . join(',$', $static) . ';';
+
+			$keys = array_diff(array_keys($properties), $static);
+
+			if($keys)
+			{
+				$code .= "\npublic";
+				foreach($keys as $value)
+				{
+					if($properties[$value] !== NULL)
+					{
+						$code .= '$' . $value . '=\'' . $properties[$value] . '\',';
+					}
+					else
+					{
+						$code .= '$' . $value . ',';
+					}
+				}
+				$code = rtrim($code, ',') . ';';
+			}
+		}
+
 		// Second, we need to obfuscate and compress each method of the class
-		$code = $this->obfuscate($reflectedClass);
+		$code .= $this->obfuscate($reflectedClass);
 
 		// Last, we take the compressed class and tokenize it
 		$this->tokens = token_get_all("<?php class $class\n{\n$code\n}\n");
@@ -142,7 +173,7 @@ class ParsePHP
 		$remove = array_flip(array(
 			T_END_HEREDOC,
 			T_PRIVATE,
-			T_PUBLIC,
+			//T_PUBLIC,
 			T_PROTECTED,
 			T_WHITESPACE,	// "\t \r\n"
 			T_COMMENT,		// // or #, and /* */ in PHP 5
