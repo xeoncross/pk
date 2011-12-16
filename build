@@ -17,16 +17,23 @@ foreach ($iterator as $file)
 	// We only want PHP files
 	if ($file->getExtension() != 'php') continue;
 
-	$text = file_get_contents($file->getPathname());
+	$class = $file->getBasename('.php');
 
+	require_once(__DIR__ . '/' . $class . '.php');
+
+	$text = file_get_contents($file->getPathname());
 	$start_size = mb_strlen($text);
 
-	$parsePHP = new ParsePHP($text);
+	// Parse the class
+	$parsePHP = new ParsePHP($class);
 	$parsePHP->minimize();
 	$text = $parsePHP;
 
 	// Add to the full file
-	$code .= substr($text, 5);
+	if($file->getFilename() !== 'ParsePHP.php')
+	{
+		$code .= substr($text, 6);
+	}
 
 	$end_length = mb_strlen($text);
 
@@ -37,7 +44,10 @@ foreach ($iterator as $file)
 	file_put_contents($dir . $file->getFilename(), $text);
 }
 
-file_put_contents($dir . 'pk.php', '<?php' . $code);
+print str_repeat('-', 80) . "\nTotal Compressed Size: "
+. colorize(mb_strlen($code), 'yellow') . " characters\n\n";
+
+file_put_contents($dir . 'pk.php', "<?php\n" . $code);
 
 
 /**

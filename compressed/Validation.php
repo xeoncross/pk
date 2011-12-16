@@ -1,2 +1,1 @@
-<?php
-class Validation{$s=array();function __set($k,$c){$this->s[$k]=$c;}function __get($k){return$this->s[$k]($this);}function validate($d){$a;foreach($this->s as$k=>$f){if($e=$f(isset($d[$k])?$d[$k]:NULL,$k)){$a[$k]=$e;}}return$a;}}
+<?php class Validation{function __set($a,$b){$this->s[$a]=$b;}function __get($a){return$this->s[$a]($this);}function validate($a){$b;foreach($this->s as$c=>$d){if($e=$d(isset($a[$c])?$a[$c]:NULL,$c)){$b[$c]=$e;}}return$b;}}

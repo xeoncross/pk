@@ -1,26 +1,36 @@
 <?php
 /**
  * PHP Code Parser
- * Currently only used to mimimize the classes of this project.
+ *
+ * Currently used to minimize the classes of this project to get the actual
+ * character count of the code written.
  */
 class ParsePHP
 {
 	// Array of all parser tokens
 	public $parser_tokens;
 
+	// Tokens from the source
+	public $tokens;
+
+	// Convert constant names to int values. Not cross-platform (or cross-version) safe!
+	//public $convert_constants = TRUE;
+
 	/**
 	 * Load the given PHP code or token array for parsing
 	 *
-	 * @param mixed $tokens an array of tokens or PHP code string
+	 * @param string|object $class to compress and obfuscate
 	 */
-	public function __construct($tokens)
+	public function __construct($class)
 	{
-		if( ! is_array($tokens))
-		{
-			$tokens = token_get_all($tokens);
-		}
+		// First we need to reflect the class
+		$reflectedClass = new ReflectionClass($class);
 
-		$this->tokens = $tokens;
+		// Second, we need to obfuscate and compress each method of the class
+		$code = $this->obfuscate($reflectedClass);
+
+		// Last, we take the compressed class and tokenize it
+		$this->tokens = token_get_all("<?php class $class\n{\n$code\n}\n");
 
 		// Load all parser tokens incase a child class wants them
 		for ($i = 100; $i < 500; $i++)
@@ -28,6 +38,99 @@ class ParsePHP
 			if(($name = @token_name($i)) == 'UNKNOWN') continue;
 			$this->parser_tokens[$i] = $name;
 		}
+	}
+
+
+	/**
+	 * Compress the function code by replacing variables
+	 *
+	 * @param object $method ReflectionMethod object
+	 * @return string
+	 */
+	function obfuscate(ReflectionClass $reflectedClass)
+	{
+		// Get each methods source code
+		$sources = array();
+		foreach($reflectedClass->getMethods() as $method)
+		{
+			$sources[] = $this->getSource($method);
+		}
+
+		$output = '';
+		$letters = range('a', 'z');
+		//$constants = $reflectedClass->getConstants();
+
+		// Compress each method independent of the others
+		foreach($sources as $source)
+		{
+			/* @todo, this is not working yet... and perhaps shouldn't be...
+			// Replace constants with their integer values (DANGEROUS!)
+			if($this->convert_constants)
+			{
+				$source = str_replace(array_keys($constants), $constants, $source);
+			}
+			*/
+
+			// Tokenize the method code so we can compress it correctly (remove open/close tag)
+			$tokens = array_slice(token_get_all("<?php $source"), 1);
+			$variables = array();
+
+			foreach($tokens as $c)
+			{
+				if(is_array($c))
+				{
+					// Do not replace $this with a short name!
+					if($c[0] === T_VARIABLE AND $c[1] !== '$this')
+					{
+						if( ! isset($variables[$c[1]]))
+						{
+							// The first item of the difference is the value we use
+							$result = array_diff($letters, $variables);
+							$variables[$c[1]] = array_shift($result);
+						}
+						$c[1] = '$' . $variables[$c[1]];
+
+					}
+					$output .= $c[1];
+				}
+				else
+				{
+					$output .= $c;
+				}
+			}
+		}
+
+		return $output;
+	}
+
+
+	/**
+	 * Retrieve the contents of the class methods
+	 *
+	 * @param object $method the ReflectionMethod object
+	 * @return string the contents of the method
+	 */
+	function getSource(ReflectionMethod $method)
+	{
+		$reflect = new ReflectionMethod($method->class, $method->name);
+
+		$file = new \SplFileObject($reflect->getFileName());
+		$file->seek(($reflect->getStartLine()-1));
+
+		$code = '';
+
+		while($file->key() < $reflect->getEndLine())
+		{
+			$code .= $file->current();
+			$file->next();
+		}
+
+		//$begin = strpos($code, 'function');
+		$begin = 0;
+		$end = strrpos($code, '}');
+		$code = substr($code, $begin, ($end - $begin + 1));
+
+		return $code;
 	}
 
 
